@@ -1,0 +1,7 @@
+picture derived from:
+
+An equirectangular projection, with the equator as the standard parallel, of a Visible Earth image collected by the Earth Observatory experiment of the U.S. Government's NASA space agency. The reticle is 15 degrees in latitude and longitude.
+
+http://commons.wikimedia.org/wiki/File:Equirectangular-projection.jpg
+
+This file is in the public domain because it was solely created by NASA. NASA copyright policy states that "NASA material is not protected by copyright unless noted".
