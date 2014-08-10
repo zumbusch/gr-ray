@@ -44,63 +44,6 @@
 #define real float
 #define DEVICE __device__
 
-//----------------------
-// slower, 10 values per matrix
-
-#define symdim (N*(N+1)/2)
-#define idx(i,j) ((i)>(j)?(i)+N*(N-1)/2-(N-(j))*(N-1-(j))/2:(j)+N*(N-1)/2-(N-(i))*(N-1-(i))/2)
-
-DEVICE void factorCholesky_sym(real a[symdim], real id[N]) {
-  // LDLt Cholesky decomposition
-  // L in a
-  // D in a
-  // inv D in id
-  for (int j=0; j<N; j++) {
-    real s = a[idx(j,j)];
-    for (int k=0; k<j; k++) {
-      real t = a[idx(j,k)];
-      s -= a[idx(k,k)] * (t * t);
-    }
-    a[idx(j,j)] = s;
-    id[j] = 1.f / s;
-    for (int i=j+1; i<N; i++) {
-      real s = a[idx(i,j)];
-      for (int k=0; k<j; k++)
-	s -= a[idx(k,k)] * a[idx(i,k)] * a[idx(j,k)]; 
-      a[idx(i,j)] = s * id[j];
-    }
-  }
-}
-
-DEVICE void substCholesky_sym(const real a[symdim], real id[N], real b[N]) {
-  for (int i=1; i<N; i++) {
-    for (int k=0; k<i; k++)
-      b[i] -= b[k] * a[idx(i,k)];
-  }
-  for (int i=0; i<N; i++)
-    b[i] *= id[i];
-  for (int i=N-2; i>=0; i--) {
-    for (int k=i+1; k<N; k++)
-      b[i] -= b[k] * a[idx(i,k)];
-  }
-}
-
-DEVICE void invCholesky_sym(real a[N][N]) {
-  real c[symdim], id[N];
-  real x[N];
-  for (int i=0; i<N; i++)
-    for (int j=i; j<N; j++)
-      c[idx(i,j)] = a[i][j];
-  factorCholesky_sym(c, id);
-  for (int i=0; i<N; i++) {
-    for (int j=0; j<N; j++)
-      x[j] = 0.f;
-    x[i] = 1.f;
-    substCholesky_sym(c, id, x);
-    for (int j=0; j<N; j++)
-      a[j][i] = x[j];
-  }
-}
 
 //----------------------
 // faster, 16 values per matrix
@@ -127,34 +70,38 @@ DEVICE void factorCholesky_sym2(real a[N][N], real id[N]) {
   }
 }
 
-DEVICE void substCholesky_sym2(const real a[N][N], real id[N], real b[N]) {
-  for (int i=1; i<N; i++) {
-    for (int k=0; k<i; k++)
-      b[i] -= b[k] * a[i][k];
-  }
-  for (int i=0; i<N; i++)
-    b[i] *= id[i];
-  for (int i=N-2; i>=0; i--) {
-    for (int k=i+1; k<N; k++)
-      b[i] -= b[k] * a[k][i];
-  }
-}
-
 DEVICE void invCholesky_sym2(real a[N][N]) {
   real c[N][N], id[N];
-  real x[N];
+
   for (int i=0; i<N; i++)
     for (int j=0; j<=i; j++)
       c[i][j] = a[i][j];
+
   factorCholesky_sym2(c, id);
-  for (int i=0; i<N; i++) {
+
+  for (int i=0; i<N; i++)
     for (int j=0; j<N; j++)
-      x[j] = 0.f;
-    x[i] = 1.f;
-    substCholesky_sym2(c, id, x);
-    for (int j=0; j<N; j++)
-      a[j][i] = x[j];
+      a[i][j] = 0.f;
+  for (int i=0; i<N; i++)
+      a[i][i] = 1.f;
+
+  for (int i=1; i<N; i++) {
+    for (int k=0; k<i; k++)
+      for (int j=0; j<=i; j++)
+	a[i][j] -= a[k][j] * c[i][k];
   }
+  for (int i=0; i<N; i++)
+    for (int j=0; j<=i; j++)
+      a[i][j] *= id[i];
+  for (int i=N-2; i>=0; i--) {
+    for (int k=i+1; k<N; k++)
+      for (int j=0; j<=i; j++)
+	a[i][j] -= a[k][j] * c[k][i];
+  }
+
+  for (int i=1; i<N; i++)
+    for (int j=0; j<i; j++)
+      a[j][i] = a[i][j];
 }
 
 #undef N
