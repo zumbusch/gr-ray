@@ -40,11 +40,11 @@
   spinning spheres: Kerr metric in Kerr-Schild coordinates
   walls
   red-shift
-  move & rotate camera [mouse left/right, shift+left]
-  evolve
+  move & rotate camera [mouse left/mouse right, shift+mouse left or mouse middle]
+  evolve [e]
+  mass [mM]
 */
 
-// to do: shift click
 
 #include "ppm.h"
 #include "cpu_anim.h"
@@ -57,13 +57,14 @@
 #define VECX 3
 #define VECY 2
 // multithreading =  thread.y, thread.z
-#define THREADX 2
-#define THREADY 4
+#define THREADX 1
+#define THREADY 2
 // 
 #define BLKX (THREADX<<VECX)
 #define BLKY (THREADY<<VECY)
 
 #define TEX
+// #define PROFILE 3
 
 #define sqr(x) ((x)*(x))
 #define M_PIF (3.141592653589793f)
@@ -174,6 +175,9 @@ void anim_gpu (DataBlock *d) {
 					d->start, d->stop));
     d->totalTime += elapsedTime;
     ++d->frames;
+#ifdef PROFILE
+    if (d->frames > PROFILE) exit(0);
+#endif // PROFILE
     printf ("Time :  %3.1f ms\n", elapsedTime);
     if (d->evolve)
       cam_host.pos[0] += .5; // time evolution
@@ -258,7 +262,10 @@ int main (int argc, char **argv)
   data.bitmap = &bitmap;
   data.totalTime = 0;
   data.frames = 0;
-  data.evolve = 0; //1;
+  data.evolve = 0;
+#ifdef PROFILE
+  data.evolve = 1;
+#endif
 
   // allocate memory on the GPU for the output bitmap
   HANDLE_ERROR (cudaMalloc ((void**)&data.dev_bitmap,
@@ -309,11 +316,11 @@ int main (int argc, char **argv)
   HANDLE_ERROR (cudaEventCreate (&data.start));
   HANDLE_ERROR (cudaEventCreate (&data.stop));
 
-  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nexit [esc]\n");
-  // display
+  // printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nexit [esc]\n");
+  // // display
   bitmap.click_drag ((void (*) (void*,float,float,float,float,float)) anim_clickdrag,
-		     (void (*) (void*,int,int)) anim_reshape);
+  		     (void (*) (void*,int,int)) anim_reshape);
   bitmap.anim_and_exit ((void (*) (void*))anim_gpu,
-			(void (*) (void*))anim_exit,
-			(void (*) (void*,unsigned char))anim_key);
+  			(void (*) (void*))anim_exit,
+  			(void (*) (void*,unsigned char))anim_key);
 }

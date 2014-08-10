@@ -5,11 +5,15 @@ NVCC = nvcc
 CC = $(NVCC) --use_fast_math
 # CC += -G -g
 
-#SMS = 20 30 35 50
+# native compile:
+CC += $(shell ./cuda_sm)
+
+# cross compile:
+#SMS = 10 20 30 35 50
 #$(foreach sm,$(SMS),$(eval CC += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
 LIB = -lGL -lglut
-BIN = cuda_sm ray
+BIN = ray cuda_sm
 
 default: $(BIN)
 
@@ -17,7 +21,7 @@ cuda_sm: cuda_sm.cu
 	$(NVCC) cuda_sm.cu -o cuda_sm
 
 ray: ray.cu cpu_anim.h gl_helper.h kern.h cholesky.h metric.h ppm.h cuda_sm
-	$(CC) $(shell ./cuda_sm) ray.cu -o ray $(LIB)
+	$(CC) ray.cu -o ray $(LIB)
 
 clean:
 	rm -f $(BIN)
