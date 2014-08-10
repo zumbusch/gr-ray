@@ -192,6 +192,7 @@ __device__ void func (float xs[8], float xdot[8]) {
   for (int k=0; k<4; k++) {
     v[k] = xs[k+4]; // x'(t)
     xdot[k] = v[k];
+    xdot[k+4] = 0.f;
   }
   // x^i(t) ' = v^i(t)
   // v^i(t) ' = \sum_{jk} \Gamma^i_{jk}(x(t)) v^j(t) v^k(t)
@@ -206,9 +207,9 @@ __device__ void func (float xs[8], float xdot[8]) {
   // inverse metric
   // float diag[4];
   // factorCholesky_sym2(gi, diag);
-  invCholesky_sym2 (gi);
+  invCholesky (gi);
 
-  float h = 2e-3f;  // 1e-3 tune
+  const float h = 2e-3f;  // 1e-3 tune
   float dg[4][4][4]; // metric derivatives
   //    for i=1:4
   //        dg(:,:,i) = metric(x+e(:,i))-metric(x-e(:,i));
@@ -223,15 +224,13 @@ __device__ void func (float xs[8], float xdot[8]) {
     metric (x2, g2);
     for (int i=0; i<4; i++)
       for (int j=0; j<4; j++)
-	dg[i][j][k] = (g2[i][j] - g[i][j])/h; // 1st order
+	dg[i][j][k] = (g2[i][j] - g[i][j]) * (1.f / h); // 1st order
   }
-  for (int k=0; k<4; k++)
-    xdot[k+4] = 0;
   for (int k=0; k<4; k++) {
     float a[4][4];
     for (int i=0; i<4; i++)
       for (int j=0; j<4; j++)
-	a[i][j] = .5f * (-dg[k][i][j] + dg[i][j][k] + dg[j][k][i]);
+	a[i][j] = .5f * (dg[i][j][k] + dg[j][k][i] - dg[k][i][j]);
 
     for (int i=0; i<4; i++)
       for (int j=0; j<4; j++) {
