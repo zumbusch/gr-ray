@@ -225,43 +225,23 @@ __device__ void func (float xs[8], float xdot[8]) {
       for (int j=0; j<4; j++)
 	dg[i][j][k] = (g2[i][j] - g[i][j])/h; // 1st order
   }
-  float vdot[4];
-  float ch[4][4][4]; // christoffel symbol
+  for (int k=0; k<4; k++)
+    xdot[k+4] = 0;
   for (int k=0; k<4; k++) {
     float a[4][4];
     for (int i=0; i<4; i++)
       for (int j=0; j<4; j++)
 	a[i][j] = .5f * (-dg[k][i][j] + dg[i][j][k] + dg[j][k][i]);
 
-
     for (int i=0; i<4; i++)
       for (int j=0; j<4; j++) {
     	float s = 0.f;
     	for (int l=0; l<4; l++)
     	  s += gi[i][l] * a[l][j];
-    	ch[i][j][k] = s;
+    	//ch[i][j][k] = s; // Christoffel
+	xdot[i+4] += v[j] * s * v[k];
       }
-
-    // for (int j=0; j<4; j++) {
-    //   float b[4];
-    //   for (int l=0; l<4; l++)
-    // 	b[l] = a[l][j];
-    //   substCholesky_sym2(gi, diag, b);
-    //   for (int i=0; i<4; i++)
-    //  	ch[i][j][k] = b[i];
-    //   }
-
-
   }
-  for (int k=0; k<4; k++) {
-    float v0 = 0.f;
-    for (int i=0; i<4; i++)
-      for (int j=0; j<4; j++)
-	v0 += v[i] * ch[k][i][j] * v[j];
-    vdot[k] = v0;
-  }
-  for (int k=0; k<4; k++)
-    xdot[k+4] = vdot[k];
 }
 
 // ----------------------------------------------------------------------
