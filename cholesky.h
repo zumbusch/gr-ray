@@ -35,13 +35,10 @@
 #ifndef CHOLESKY_H
 #define CHOLESKY_H
 
-// ----------------------------------------------------------------------
-// 
-// ----------------------------------------------------------------------
-
-
-__device__ void invCholesky(float a[4][4]) {
-  float s;
+__device__ void factorSubstCholesky(float a[4][4], float b[4]) {
+  // LDLt Cholesky decomposition
+  // L in c
+  // D in c
   float c11 = a[0][0];
   float c21 = a[1][0];
   float c22 = a[1][1];
@@ -52,109 +49,73 @@ __device__ void invCholesky(float a[4][4]) {
   float c42 = a[3][1];
   float c43 = a[3][2];
   float c44 = a[3][3];
-  s = c11;
-  c11 = s;
-  s = c21;
-  c21 = s / c11;
-  s = c31;
-  c31 = s / c11;
-  s = c41;
-  c41 = s / c11;
-  s = c22;
-  s = s - c11 * c21 * c21;
-  c22 = s;
-  s = c32;
-  s = s - c11 * c31 * c21;
-  c32 = s / c22;
-  s = c42;
-  s = s - c11 * c41 * c21;
-  c42 = s / c22;
-  s = c33;
-  s = s - c11 * c31 * c31;
-  s = s - c22 * c32 * c32;
-  c33 = s;
-  s = c43;
-  s = s - c11 * c41 * c31;
-  s = s - c22 * c42 * c32;
-  c43 = s / c33;
-  s = c44;
-  s = s - c11 * c41 * c41;
-  s = s - c22 * c42 * c42;
-  s = s - c33 * c43 * c43;
-  c44 = s;
-  float a11 = 1.f;
-  float a12 = 0.f;
-  float a13 = 0.f;
-  float a14 = 0.f;
-  float a21 = 0.f;
-  float a22 = 1.f;
-  float a23 = 0.f;
-  float a24 = 0.f;
-  float a31 = 0.f;
-  float a32 = 0.f;
-  float a33 = 1.f;
-  float a34 = 0.f;
-  float a41 = 0.f;
-  float a42 = 0.f;
-  float a43 = 0.f;
-  float a44 = 1.f;
-  a21 = a21 - a11 * c21;
-  a22 = a22 - a12 * c21;
-  a31 = a31 - a11 * c31;
-  a32 = a32 - a12 * c31;
-  a33 = a33 - a13 * c31;
-  a31 = a31 - a21 * c32;
-  a32 = a32 - a22 * c32;
-  a33 = a33 - a23 * c32;
-  a41 = a41 - a11 * c41;
-  a42 = a42 - a12 * c41;
-  a43 = a43 - a13 * c41;
-  a44 = a44 - a14 * c41;
-  a41 = a41 - a21 * c42;
-  a42 = a42 - a22 * c42;
-  a43 = a43 - a23 * c42;
-  a44 = a44 - a24 * c42;
-  a41 = a41 - a31 * c43;
-  a42 = a42 - a32 * c43;
-  a43 = a43 - a33 * c43;
-  a44 = a44 - a34 * c43;
-  a11 = a11 / c11;
-  a21 = a21 / c22;
-  a22 = a22 / c22;
-  a31 = a31 / c33;
-  a32 = a32 / c33;
-  a33 = a33 / c33;
-  a41 = a41 / c44;
-  a42 = a42 / c44;
-  a43 = a43 / c44;
-  a44 = a44 / c44;
-  a31 = a31 - a41 * c43;
-  a32 = a32 - a42 * c43;
-  a33 = a33 - a43 * c43;
-  a21 = a21 - a31 * c32;
-  a22 = a22 - a32 * c32;
-  a21 = a21 - a41 * c42;
-  a22 = a22 - a42 * c42;
-  a11 = a11 - a21 * c21;
-  a11 = a11 - a31 * c31;
-  a11 = a11 - a41 * c41;
-  a[0][0] = a11;
-  a[0][1] = a21;
-  a[0][2] = a31;
-  a[0][3] = a41;
-  a[1][0] = a21;
-  a[1][1] = a22;
-  a[1][2] = a32;
-  a[1][3] = a42;
-  a[2][0] = a31;
-  a[2][1] = a32;
-  a[2][2] = a33;
-  a[2][3] = a43;
-  a[3][0] = a41;
-  a[3][1] = a42;
-  a[3][2] = a43;
-  a[3][3] = a44;
+  c11 = c11;
+  c21 = (c21) / c11;
+  c31 = (c31) / c11;
+  c41 = (c41) / c11;
+  c22 = c22 - c11 * (c21 * c21);
+  c32 = (c32 - c11 * (c31 * c21)) / c22;
+  c42 = (c42 - c11 * (c41 * c21)) / c22;
+  c33 = c33 - c11 * (c31 * c31) - c22 * (c32 * c32);
+  c43 = (c43 - c11 * (c41 * c31) - c22 * (c42 * c32)) / c33;
+  c44 = c44 - c11 * (c41 * c41) - c22 * (c42 * c42) - c33 * (c43 * c43);
+  float a1 = b[0];
+  float a2 = b[1];
+  float a3 = b[2];
+  float a4 = b[3];
+  a2 = a2 - a1 * c21;
+  a3 = a3 - a1 * c31 - a2 * c32;
+  a4 = a4 - a1 * c41 - a2 * c42 - a3 * c43;
+  a1 = a1 / c11;
+  a2 = a2 / c22;
+  a3 = a3 / c33;
+  a4 = a4 / c44;
+  a3 = a3 - a4 * c43;
+  a2 = a2 - a3 * c32 - a4 * c42;
+  a1 = a1 - a2 * c21 - a3 * c31 - a4 * c41;
+  b[0] = a1;
+  b[1] = a2;
+  b[2] = a3;
+  b[3] = a4;
 }
+
+#define N 4
+#define real float
+__device__ void factorSubstCholesky0(real a[N][N], real b[N]) {
+  // LDLt Cholesky decomposition
+  // L in a
+  // D in a
+  // inv D in id
+  real id[N];
+  for (int j=0; j<N; j++) {
+    real s = a[j][j];
+    for (int k=0; k<j; k++) {
+      real t = a[j][k];
+       s -= a[k][k] * (t * t);
+    }
+    a[j][j] = s;
+    id[j] = 1.f / s;
+    for (int i=j+1; i<N; i++) {
+      real s = a[i][j];
+       for (int k=0; k<j; k++) {
+	 s -= a[k][k] * a[i][k] * a[j][k];
+       }
+       a[i][j] = s * id[j];
+    }
+  }
+
+  for (int i=1; i<N; i++) {
+    for (int k=0; k<i; k++)
+      b[i] -= b[k] * a[i][k];
+  }
+  for (int i=0; i<N; i++)
+    b[i] *= id[i];
+  for (int i=N-2; i>=0; i--) {
+    for (int k=i+1; k<N; k++)
+      b[i] -= b[k] * a[k][i];
+  }
+}
+
 
 //----------------------------------------------------------------------
 

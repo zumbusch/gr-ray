@@ -316,7 +316,7 @@ int main (int argc, char **argv)
   HANDLE_ERROR (cudaEventCreate (&data.start));
   HANDLE_ERROR (cudaEventCreate (&data.stop));
 
-  // printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nexit [esc]\n");
+  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nexit [esc]\n");
   // // display
   bitmap.click_drag ((void (*) (void*,float,float,float,float,float)) anim_clickdrag,
   		     (void (*) (void*,int,int)) anim_reshape);

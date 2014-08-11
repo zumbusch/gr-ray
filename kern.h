@@ -179,42 +179,41 @@ __device__ void Sphere::color (float x0[8], float xs[8], float g00, int cf[3]) {
 }
 
 __device__ float norm4 (float x[4]) {
-  float n = 0;
-  for (int k=0; k<4; k++)
-    n += sqr (x[k]);
-  return sqrtf (n);
+  // float n = 0;
+  // for (int k=0; k<4; k++)
+  //   n += sqr (x[k]);
+  // return sqrtf (n);
+  return sqrtf (sqr(x[0])+sqr(x[1])+sqr(x[2])+sqr(x[3]));
 }
 
-__device__ void func (float xs[8], float xdot[8]) {
+__device__ void func (const float xs[8], float xdot[8]) {
   float x[4], v[4];
   for (int k=0; k<4; k++)
     x[k] = xs[k]; // x(t)
   for (int k=0; k<4; k++) {
     v[k] = xs[k+4]; // x'(t)
     xdot[k] = v[k];
-    xdot[k+4] = 0.f;
   }
   // x^i(t) ' = v^i(t)
   // v^i(t) ' = \sum_{jk} \Gamma^i_{jk}(x(t)) v^j(t) v^k(t)
   // \Gamma^i_{jk} = .5 \sum_{l} g^{il}(d_j g_{kl}+d_k g_{jl}-d_l g_{jk})
-  float g[4][4];
-  metric (x, g);  // metric
-  float gi[4][4];
+  float g0[4][4];
+  metric (x, g0);  // metric
+  float d0[4];
+  float c0 = 0.f;
+  for (int i=0; i<4; i++) {
+    // float s = 0.f;
+    // for (int j=0; j<4; j++)
+    // 	s += g0[i][j] * v[j];
+    float s = g0[i][0] * v[0] + g0[i][1] * v[1] + g0[i][2] * v[2] + g0[i][3] * v[3];
+    d0[i] = s;
+    c0 += v[i] * s;
+  }
+
+  float e[4];
   for (int i=0; i<4; i++)
-    for (int j=0; j<4; j++)
-      gi[i][j] = g[i][j];
-
-  // inverse metric
-  // float diag[4];
-  // factorCholesky_sym2(gi, diag);
-  invCholesky (gi);
-
+    e[i] = 0.f;
   const float h = 2e-3f;  // 1e-3 tune
-  float dg[4][4][4]; // metric derivatives
-  //    for i=1:4
-  //        dg(:,:,i) = metric(x+e(:,i))-metric(x-e(:,i));
-  //    end
-  //    dg = dg/(2*h); // 2nd order
   for (int k=0; k<4; k++) {
     float g2[4][4];
     float x2[4];
@@ -222,25 +221,24 @@ __device__ void func (float xs[8], float xdot[8]) {
       x2[i] = x[i];
     x2[k] += h;
     metric (x2, g2);
+    float d2[4];
+    float c2 = 0.f;
+    for (int i=0; i<4; i++) {
+      // float s = 0.f;
+      // for (int j=0; j<4; j++)
+      // 	s += g2[i][j] * v[j];
+      float s = g2[i][0] * v[0] + g2[i][1] * v[1] + g2[i][2] * v[2] + g2[i][3] * v[3];
+      d2[i] = s;
+      c2 += v[i] * s;
+    }
+    e[k] += (c2 - c0) * (.5f / h); // 1st order
     for (int i=0; i<4; i++)
-      for (int j=0; j<4; j++)
-	dg[i][j][k] = (g2[i][j] - g[i][j]) * (1.f / h); // 1st order
+      e[i] -= v[k] * (d2[i]- d0[i]) *(1.f / h); // 1st order
   }
-  for (int k=0; k<4; k++) {
-    float a[4][4];
-    for (int i=0; i<4; i++)
-      for (int j=0; j<4; j++)
-	a[i][j] = .5f * (dg[i][j][k] + dg[j][k][i] - dg[k][i][j]);
 
-    for (int i=0; i<4; i++)
-      for (int j=0; j<4; j++) {
-    	float s = 0.f;
-    	for (int l=0; l<4; l++)
-    	  s += gi[i][l] * a[l][j];
-    	//ch[i][j][k] = s; // Christoffel
-	xdot[i+4] += v[j] * s * v[k];
-      }
-  }
+  factorSubstCholesky(g0, e);
+  for (int i=0; i<4; i++)
+    xdot[i+4] = e[i];
 }
 
 // ----------------------------------------------------------------------
