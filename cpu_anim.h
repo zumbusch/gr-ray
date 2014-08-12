@@ -67,6 +67,7 @@ struct CPUAnimBitmap {
   int mouseOldX, mouseOldY, mouseButtons, modifiers;
   float rotateX, rotateY, translateX, translateY, translateZ;
   int update;
+  bool full;
 
   CPUAnimBitmap( int w, int h, void *d = NULL ) {
     width = w;
@@ -77,6 +78,7 @@ struct CPUAnimBitmap {
     mouseOldX = mouseOldY = mouseButtons = 0;
     rotateX = rotateY = translateX = translateY = translateZ = 0;
     update = 0;
+    full = false;
   }
 
   ~CPUAnimBitmap() {
@@ -108,6 +110,7 @@ struct CPUAnimBitmap {
     glutInitWindowSize( width, height );
     glutCreateWindow( "GR raytracer" );
     glutKeyboardFunc(Key);
+    glutSpecialFunc(SpecialKey);
     glutDisplayFunc(Draw);
     glutMouseFunc( mouse_func );
     glutMotionFunc(motion);
@@ -199,12 +202,31 @@ struct CPUAnimBitmap {
     case char('o'):
     case char('e'):
       bitmap->animKey( bitmap->dataBlock, key );
+      bitmap->update = 1;
       break;
     case 27:
       bitmap->animExit( bitmap->dataBlock );
       exit(0);
     }
-    bitmap->update = 1;
+  }
+
+  // static method used for glut callbacks
+  static void SpecialKey(int key, int x, int y) {
+    CPUAnimBitmap*   bitmap = *(get_bitmap_ptr());
+    switch (key) {
+    case GLUT_KEY_F5:
+      bitmap->full = !bitmap->full;
+      //glutFullScreenToggle();
+      if (bitmap->full)
+       	glutFullScreen ();
+      else {
+      	//glutPositionWindow (0, 0);
+      	//glutReshapeWindow (256, 256);
+      	bitmap->animExit( bitmap->dataBlock );
+      	exit(0);
+      }
+      break;
+    }
   }
 
   // static method used for glut callbacks

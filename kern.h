@@ -212,14 +212,14 @@ __device__ void func (const float xs[8], float xdot[8]) {
     matVec(g2, v, d2);
     float c2 = scalProd(v, d2);
 
-    e[k] += (c2 - c0) * (.5f / h); // 1st order
+    e[k] += (c2 - c0) * .5f; // 1st order
     for (int i=0; i<4; i++)
-      e[i] -= v[k] * (d2[i]- d0[i]) *(1.f / h); // 1st order
+      e[i] -= v[k] * (d2[i]- d0[i]); // 1st order
   }
 
   factorSubstCholesky(g0, e);
   for (int i=0; i<4; i++)
-    xdot[i+4] = e[i];
+    xdot[i+4] = e[i] * (1.f / h);
 }
 
 

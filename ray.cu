@@ -54,7 +54,7 @@
 #define VECX 3
 #define VECY 2
 // multithreading =  thread.y, thread.z
-#define THREADX 1
+#define THREADX 2
 #define THREADY 2
 // 
 #define BLKX (THREADX<<VECX)
@@ -177,7 +177,7 @@ void anim_gpu (DataBlock *d) {
 #ifdef PROFILE
     if (d->frames > PROFILE) exit(0);
 #endif // PROFILE
-    printf ("Time :  %3.1f ms\n", elapsedTime);
+    printf ("time :  %3.1f ms\n", elapsedTime);
     if (d->evolve)
       cam_host.pos[0] += .5; // time evolution
   } else
@@ -291,11 +291,11 @@ int main (int argc, char **argv)
 
 #if SPHERES>0
   sph_host[0] = (Sphere){{0, 0, 0, 0},
-			 .5, 2., .5,
+			 .5, 2., .6,
 			 {160, 200, 255}};
 #if SPHERES>1
   sph_host[1] = (Sphere){{0, 0, -3, -3},
-			 .125, .5, .5,
+			 .125, .5, .3,
 			 {150, 150, 150}};
 #endif
   HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
@@ -334,7 +334,7 @@ int main (int argc, char **argv)
   HANDLE_ERROR (cudaEventCreate (&data.start));
   HANDLE_ERROR (cudaEventCreate (&data.stop));
 
-  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mMnN]\nchange spin [oOpP]\nexit [esc]\n");
+  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mMnN], spin [oOpP]\nexit [esc], full screen [F5]\n");
   // display
   bitmap.click_drag ((void (*) (void*,float,float,float,float,float)) anim_clickdrag,
   		     (void (*) (void*,int,int)) anim_reshape);
