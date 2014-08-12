@@ -67,13 +67,13 @@ struct CPUAnimBitmap {
   float rotateX, rotateY, translateX, translateY, translateZ;
   int update;
   bool full;
-  int size;
+  int size, allocsize;
 
   CPUAnimBitmap (int w, int h, void *d = NULL) {
     width = w;
     height = h;
-    size = width * height * 4;
-    pixels = new unsigned char[size];
+    allocsize = size = width * height * 4;
+    pixels = new unsigned char[allocsize];
     dataBlock = d;
     clickDrag = NULL;
     mouseOldX = mouseOldY = mouseButtons = 0;
@@ -87,7 +87,6 @@ struct CPUAnimBitmap {
   }
 
   unsigned char* get_ptr (void) const   { return pixels; }
-  long image_size (void) const { return size; }
 
   void click_drag (void (*f) (void*,float,float,float,float,float),
 		   void (*c) (void*,int,int)) {
@@ -175,11 +174,12 @@ struct CPUAnimBitmap {
     int wx = 32, hx = 16;
     w = ((w + wx -1)/wx)*wx;
     h = ((h + hx -1)/hx)*hx;
-    if (w * h * 4 > bitmap->size) {
-      bitmap->size = w * h * 4;
+    bitmap->size = w * h * 4;
+    if (bitmap->size > bitmap->allocsize) {
+      bitmap->allocsize = bitmap->size;
       if (bitmap->pixels)
 	delete[] bitmap->pixels;
-      bitmap->pixels = new unsigned char[bitmap->size];
+      bitmap->pixels = new unsigned char[bitmap->allocsize];
     }
     bitmap->width = w;
     bitmap->height = h;

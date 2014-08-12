@@ -134,7 +134,7 @@ void anim_reshape (DataBlock *d, int x, int y) {
   cam_host.gy = max (2,y);
   HANDLE_ERROR (cudaFree (d->dev_bitmap));
   HANDLE_ERROR (cudaMalloc ((void**)&d->dev_bitmap,
-   			    d->bitmap->image_size ()));
+   			    d->bitmap->allocsize));
   cam_host.ptr = d->dev_bitmap;
 
   dim3 grids (cam_host.gx/BLKX, cam_host.gy/BLKY);
@@ -164,7 +164,7 @@ void anim_gpu (DataBlock *d) {
     getLastCudaError("Kernel execution failed");
     // copy our bitmap back from the GPU for display
     HANDLE_ERROR (cudaMemcpy (d->bitmap->get_ptr (), d->dev_bitmap,
-			      d->bitmap->image_size (),
+			      d->bitmap->size,
 			      cudaMemcpyDeviceToHost));
 
     HANDLE_ERROR (cudaEventRecord (d->stop, 0));
@@ -287,7 +287,7 @@ int main (int argc, char **argv)
 
   // allocate memory on the GPU for the output bitmap
   HANDLE_ERROR (cudaMalloc ((void**)&data.dev_bitmap,
-			    bitmap.image_size ()));
+			    bitmap.allocsize));
 
 #if SPHERES>0
   sph_host[0] = (Sphere){{0, 0, 0, 0},
