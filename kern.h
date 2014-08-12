@@ -171,20 +171,13 @@ __device__ void Sphere::color (float x0[8], float xs[8], float g00, int cf[3]) {
     cf[i] = f * col[i];
 #endif // TEX
 
-  float g[4][4];
+  float g[10];
   for (int i=0; i<4; i++)
     x[i] += pos[i];
   metric (x, g);
-  redshift (g00/g[0][0], cf);
+  redshift (g00/g[0], cf);
 }
 
-__device__ float norm4 (float x[4]) {
-  // float n = 0;
-  // for (int k=0; k<4; k++)
-  //   n += sqr (x[k]);
-  // return sqrtf (n);
-  return sqrtf (sqr(x[0])+sqr(x[1])+sqr(x[2])+sqr(x[3]));
-}
 
 
 __device__ void func (const float xs[8], float xdot[8]) {
@@ -201,14 +194,8 @@ __device__ void func (const float xs[8], float xdot[8]) {
   float g0[10];
   metric (x, g0);  // metric
   float d0[4];
-  d0[0] = g0[0] * v[0] + g0[1] * v[1] + g0[3] * v[2] + g0[6] * v[3];
-  float c0 = v[0] * d0[0];
-  d0[1] = g0[1] * v[0] + g0[2] * v[1] + g0[4] * v[2] + g0[7] * v[3];
-  c0 += v[1] * d0[1];
-  d0[2] = g0[3] * v[0] + g0[4] * v[1] + g0[5] * v[2] + g0[8] * v[3];
-  c0 += v[2] * d0[2];
-  d0[3] = g0[6] * v[0] + g0[7] * v[1] + g0[8] * v[2] + g0[9] * v[3];
-  c0 += v[3] * d0[3];
+  matVec(g0, v, d0);
+  float c0 = scalProd(v, d0);
 
   float e[4];
   for (int i=0; i<4; i++)
@@ -222,14 +209,8 @@ __device__ void func (const float xs[8], float xdot[8]) {
     x2[k] += h;
     metric (x2, g2);
     float d2[4];
-    d2[0] = g2[0] * v[0] + g2[1] * v[1] + g2[3] * v[2] + g2[6] * v[3];
-    float c2 = v[0] * d2[0];
-    d2[1] = g2[1] * v[0] + g2[2] * v[1] + g2[4] * v[2] + g2[7] * v[3];
-    c2 += v[1] * d2[1];
-    d2[2] = g2[3] * v[0] + g2[4] * v[1] + g2[5] * v[2] + g2[8] * v[3];
-    c2 += v[2] * d2[2];
-    d2[3] = g2[6] * v[0] + g2[7] * v[1] + g2[8] * v[2] + g2[9] * v[3];
-    c2 += v[3] * d2[3];
+    matVec(g2, v, d2);
+    float c2 = scalProd(v, d2);
 
     e[k] += (c2 - c0) * (.5f / h); // 1st order
     for (int i=0; i<4; i++)
@@ -256,15 +237,8 @@ __device__ void func16 (const float xs[8], float xdot[8]) {
   float g0[4][4];
   metric (x, g0);  // metric
   float d0[4];
-  float c0 = 0.f;
-  for (int i=0; i<4; i++) {
-    // float s = 0.f;
-    // for (int j=0; j<4; j++)
-    // 	s += g0[i][j] * v[j];
-    float s = g0[i][0] * v[0] + g0[i][1] * v[1] + g0[i][2] * v[2] + g0[i][3] * v[3];
-    d0[i] = s;
-    c0 += v[i] * s;
-  }
+  matVec(g0, v, d0);
+  float c0 = scalProd(v, d0);
 
   float e[4];
   for (int i=0; i<4; i++)
@@ -278,15 +252,8 @@ __device__ void func16 (const float xs[8], float xdot[8]) {
     x2[k] += h;
     metric (x2, g2);
     float d2[4];
-    float c2 = 0.f;
-    for (int i=0; i<4; i++) {
-      // float s = 0.f;
-      // for (int j=0; j<4; j++)
-      // 	s += g2[i][j] * v[j];
-      float s = g2[i][0] * v[0] + g2[i][1] * v[1] + g2[i][2] * v[2] + g2[i][3] * v[3];
-      d2[i] = s;
-      c2 += v[i] * s;
-    }
+    matVec(g2, v, d2);
+    float c2 = scalProd(v, d2);
     e[k] += (c2 - c0) * (.5f / h); // 1st order
     for (int i=0; i<4; i++)
       e[i] -= v[k] * (d2[i]- d0[i]) *(1.f / h); // 1st order
@@ -312,22 +279,20 @@ __global__ void kernel() {
   float pd[4];
   for (int k=0; k<4; k++)
     pd[k] = cam.pz[k] + x*cam.px[k] + y*cam.py[k]; // light ray pos+l*pd
-  float pdn = 1.f / norm4 (pd);
+  float pdn = 1.f / norm (pd);
   for (int k=0; k<4; k++)
     pd[k] *= pdn;
-  float g[4][4];
+  float g[10];
   metric (cam.pos, g);
   float g0 = 0.f;
   for (int k=1; k<4; k++)
     g0 += sqr (cam.pos[k]);
   g0 = sqrtf (g0);
-  float a = g[0][0];
-  float b = 0.f, c = 0.f;
-  for (int k=1; k<4; k++)
-    b += 2.f * g[0][k]*pd[k];
-  for (int i=1; i<4; i++)
-    for (int j=1; j<4; j++)
-      c += pd[i] * g[i][j] * pd[j];
+  float gpd[4];
+  matVec_1N(g, pd, gpd);
+  float a = g[0];
+  float b = 2.f * gpd[0];
+  float c = pd[1] * gpd[1] + pd[2] * gpd[2] + pd[3] * gpd[3];
   float d = sqr (b)-4*a*c;
   // \sum_{jk} g_{jk}(x(t)) v^j(t) v^k(t) = 0
   pd[0] = - (b+sqrtf (d))/(2*a); // light like, into the past

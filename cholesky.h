@@ -35,6 +35,14 @@
 #ifndef CHOLESKY_H
 #define CHOLESKY_H
 
+#ifndef sqr
+#define sqr(x) ((x)*(x))
+#endif
+
+// ----------------------------------------------------------------------
+// solve equation system
+// symmetric matrix A
+
 __device__ inline void factorSubstCholesky(float a[4][4], float b[4]) {
   // LDLt Cholesky decomposition
   // L in c
@@ -124,7 +132,7 @@ __device__ inline void factorSubstCholesky(float a[10], float b[4]) {
 
 #define N 4
 #define real float
-__device__ inline void factorSubstCholesky0(real a[N][N], real b[N]) {
+__device__ inline void factorSubstCholesky_0(real a[N][N], real b[N]) {
   // LDLt Cholesky decomposition
   // L in a
   // D in a
@@ -159,6 +167,80 @@ __device__ inline void factorSubstCholesky0(real a[N][N], real b[N]) {
   }
 }
 
+// ----------------------------------------------------------------------
+// eukildean norm
+// s = ||x||_2
+
+__device__ inline float norm_0 (float x[N]) {
+  float s = 0.f;
+  for (int k=0; k<N; k++)
+    s += sqr (x[k]);
+  return sqrtf (s);
+}
+
+__device__ inline float norm (float x[4]) {
+  return sqrtf (sqr(x[0])+sqr(x[1])+sqr(x[2])+sqr(x[3]));
+}
+
+// ----------------------------------------------------------------------
+// scalar product
+// s = <x,y>
+
+__device__ inline float scalProd_0 (float x[N], float y[N]) {
+  float s = 0.f;
+  for (int k=0; k<N; k++)
+    s += x[k] * y[k];
+  return s;
+}
+
+__device__ inline float scalProd (float x[4], float y[4]) {
+  return x[0] * y[0] + x[1] * y[1] + x[2] * y[2] + x[3] * y[3];
+}
+
+// ----------------------------------------------------------------------
+// symmetric matrix A
+// y = A*x
+
+__device__ inline void matVec(const float a[10], const float x[4], float y[4]) {
+  y[0] = a[0] * x[0] + a[1] * x[1] + a[3] * x[2] + a[6] * x[3];
+  y[1] = a[1] * x[0] + a[2] * x[1] + a[4] * x[2] + a[7] * x[3];
+  y[2] = a[3] * x[0] + a[4] * x[1] + a[5] * x[2] + a[8] * x[3];
+  y[3] = a[6] * x[0] + a[7] * x[1] + a[8] * x[2] + a[9] * x[3];
+}
+
+__device__ inline void matVec(const float a[4][4], const float x[4], float y[4]) {
+  for (int i=0; i<4; i++)
+    y[i] = a[i][0] * x[0] + a[i][1] * x[1] + a[i][2] * x[2] + a[i][3] * x[3];
+}
+
+__device__ inline void matVec_0(const float a[N][N], const float x[N], float y[N]) {
+  for (int i=0; i<N; i++) {
+    float s = 0.f;
+    for (int j=0; j<N; j++)
+      s += a[i][j] * x[j];
+    y[i] = s;
+  }
+}
+
+// ----------------------------------------------------------------------
+// symmetric matrix A, index 1..N-1
+// partial y = A*x
+
+__device__ inline void matVec_1N(const float a[10], const float x[4], float y[4]) {
+  y[0] = a[1] * x[1] + a[3] * x[2] + a[6] * x[3];
+  y[1] = a[2] * x[1] + a[4] * x[2] + a[7] * x[3];
+  y[2] = a[4] * x[1] + a[5] * x[2] + a[8] * x[3];
+  y[3] = a[7] * x[1] + a[8] * x[2] + a[9] * x[3];
+}
+
+__device__ inline void matVec_1N(const float a[N][N], const float x[N], float y[N]) {
+  for (int i=0; i<N; i++) {
+    float s = 0.f;
+    for (int j=1; j<N; j++)
+      s += a[i][j] * x[j];
+    y[i] = s;
+  }
+}
 
 //----------------------------------------------------------------------
 

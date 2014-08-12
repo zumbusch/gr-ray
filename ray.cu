@@ -40,10 +40,6 @@
   spinning spheres: Kerr metric in Kerr-Schild coordinates
   walls
   red-shift
-  move & rotate camera [mouse left/mouse right, shift+mouse left or mouse middle]
-  evolve [e]
-  mass [mM]
-  spin [pP]
 */
 
 
@@ -67,7 +63,9 @@
 #define TEX
 // #define PROFILE 10
 
+#ifndef sqr
 #define sqr(x) ((x)*(x))
+#endif
 #define M_PIF (3.141592653589793f)
 
 #ifdef TEX
@@ -202,33 +200,39 @@ void anim_key (DataBlock *d, unsigned char k) {
     d->evolve = 1 - d->evolve;
     printf ("evolve\n");
   }
-  float f = 1.;
-  if (k == char ('M')) f = 1./.9;
-  if (k == char ('m')) f = .9;
-  if (f != 1.) {
-    for (int i=0; i<SPHERES; i++) {
-      sph_host[i].m *= f;
-      sph_host[i].r *= f;
-    }
 #if SPHERES>0
+  bool change = false;
+  if (k == char ('N') || k == char ('n')) {
+    change = true;
+    float f = k == char ('N') ? 1/.9 : .9;
+    sph_host[1].m *= f;
+    sph_host[1].r *= f;
+    printf ("mass %g %g\n", sph_host[0].m, sph_host[1].m);
+  }
+  if (k == char ('M') || k == char ('m')) {
+    change = true;
+    float f = k == char ('M') ? 1/.9 : .9;
+    sph_host[0].m *= f;
+    sph_host[0].r *= f;
+    printf ("mass %g %g\n", sph_host[0].m, sph_host[1].m);
+  }
+  if (k == char ('O') || k == char ('o')) {
+    change = true;
+    float p = k == char ('O') ? .1 : -.1;
+    sph_host[1].a += p;
+    printf ("spin %g %g\n", sph_host[0].a, sph_host[1].a);
+  }
+  if (k == char ('P') || k == char ('p')) {
+    change = true;
+    float p = k == char ('P') ? .1 : -.1;
+    sph_host[0].a += p;
+    printf ("spin %g %g\n", sph_host[0].a, sph_host[1].a);
+  }
+  if (change) {
     HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
 				      sizeof (Sphere) * SPHERES));
-#endif
-    printf ("mass %g\n", sph_host[0].m);
   }
-  float p = 0.;
-  if (k == char ('P')) p = .1;
-  if (k == char ('p')) p = -.1;
-  if (p != 0.) {
-    for (int i=0; i<SPHERES; i++) {
-      sph_host[i].a = min(max(sph_host[i].a + p, -1.), 1.);
-    }
-#if SPHERES>0
-    HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
-				      sizeof (Sphere) * SPHERES));
-#endif
-    printf ("spin %g\n", sph_host[0].a);
-  }
+#endif // SPHERES
 }
 
 void start_tex () {
@@ -330,7 +334,7 @@ int main (int argc, char **argv)
   HANDLE_ERROR (cudaEventCreate (&data.start));
   HANDLE_ERROR (cudaEventCreate (&data.stop));
 
-  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nchange spin [pP]\nexit [esc]\n");
+  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mMnN]\nchange spin [oOpP]\nexit [esc]\n");
   // display
   bitmap.click_drag ((void (*) (void*,float,float,float,float,float)) anim_clickdrag,
   		     (void (*) (void*,int,int)) anim_reshape);
