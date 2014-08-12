@@ -43,6 +43,7 @@
   move & rotate camera [mouse left/mouse right, shift+mouse left or mouse middle]
   evolve [e]
   mass [mM]
+  spin [pP]
 */
 
 
@@ -64,7 +65,7 @@
 #define BLKY (THREADY<<VECY)
 
 #define TEX
-// #define PROFILE 3
+// #define PROFILE 10
 
 #define sqr(x) ((x)*(x))
 #define M_PIF (3.141592653589793f)
@@ -202,8 +203,8 @@ void anim_key (DataBlock *d, unsigned char k) {
     printf ("evolve\n");
   }
   float f = 1.;
-  if (k == char ('M')) f = 1./.7;
-  if (k == char ('m')) f = .7;
+  if (k == char ('M')) f = 1./.9;
+  if (k == char ('m')) f = .9;
   if (f != 1.) {
     for (int i=0; i<SPHERES; i++) {
       sph_host[i].m *= f;
@@ -213,7 +214,20 @@ void anim_key (DataBlock *d, unsigned char k) {
     HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
 				      sizeof (Sphere) * SPHERES));
 #endif
-    printf ("mass\n");
+    printf ("mass %g\n", sph_host[0].m);
+  }
+  float p = 0.;
+  if (k == char ('P')) p = .1;
+  if (k == char ('p')) p = -.1;
+  if (p != 0.) {
+    for (int i=0; i<SPHERES; i++) {
+      sph_host[i].a = min(max(sph_host[i].a + p, -1.), 1.);
+    }
+#if SPHERES>0
+    HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
+				      sizeof (Sphere) * SPHERES));
+#endif
+    printf ("spin %g\n", sph_host[0].a);
   }
 }
 
@@ -273,11 +287,11 @@ int main (int argc, char **argv)
 
 #if SPHERES>0
   sph_host[0] = (Sphere){{0, 0, 0, 0},
-			 .5, 2., 1,
+			 .5, 2., .5,
 			 {160, 200, 255}};
 #if SPHERES>1
   sph_host[1] = (Sphere){{0, 0, -3, -3},
-			 .125, .5, .1,
+			 .125, .5, .5,
 			 {150, 150, 150}};
 #endif
   HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
@@ -316,8 +330,8 @@ int main (int argc, char **argv)
   HANDLE_ERROR (cudaEventCreate (&data.start));
   HANDLE_ERROR (cudaEventCreate (&data.stop));
 
-  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nexit [esc]\n");
-  // // display
+  printf ("move camera [mouse left/right]\nrotate camera [shift+mouse left or mouse middle]\ntoggle evolve [e]\nchange mass [mM]\nchange spin [pP]\nexit [esc]\n");
+  // display
   bitmap.click_drag ((void (*) (void*,float,float,float,float,float)) anim_clickdrag,
   		     (void (*) (void*,int,int)) anim_reshape);
   bitmap.anim_and_exit ((void (*) (void*))anim_gpu,

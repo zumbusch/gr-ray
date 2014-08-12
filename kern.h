@@ -186,7 +186,63 @@ __device__ float norm4 (float x[4]) {
   return sqrtf (sqr(x[0])+sqr(x[1])+sqr(x[2])+sqr(x[3]));
 }
 
+
 __device__ void func (const float xs[8], float xdot[8]) {
+  float x[4], v[4];
+  for (int k=0; k<4; k++)
+    x[k] = xs[k]; // x(t)
+  for (int k=0; k<4; k++) {
+    v[k] = xs[k+4]; // x'(t)
+    xdot[k] = v[k];
+  }
+  // x^i(t) ' = v^i(t)
+  // v^i(t) ' = \sum_{jk} \Gamma^i_{jk}(x(t)) v^j(t) v^k(t)
+  // \Gamma^i_{jk} = .5 \sum_{l} g^{il}(d_j g_{kl}+d_k g_{jl}-d_l g_{jk})
+  float g0[10];
+  metric (x, g0);  // metric
+  float d0[4];
+  d0[0] = g0[0] * v[0] + g0[1] * v[1] + g0[3] * v[2] + g0[6] * v[3];
+  float c0 = v[0] * d0[0];
+  d0[1] = g0[1] * v[0] + g0[2] * v[1] + g0[4] * v[2] + g0[7] * v[3];
+  c0 += v[1] * d0[1];
+  d0[2] = g0[3] * v[0] + g0[4] * v[1] + g0[5] * v[2] + g0[8] * v[3];
+  c0 += v[2] * d0[2];
+  d0[3] = g0[6] * v[0] + g0[7] * v[1] + g0[8] * v[2] + g0[9] * v[3];
+  c0 += v[3] * d0[3];
+
+  float e[4];
+  for (int i=0; i<4; i++)
+    e[i] = 0.f;
+  const float h = 2e-3f;  // 1e-3 tune
+  for (int k=0; k<4; k++) {
+    float g2[10];
+    float x2[4];
+    for (int i=0; i<4; i++)
+      x2[i] = x[i];
+    x2[k] += h;
+    metric (x2, g2);
+    float d2[4];
+    d2[0] = g2[0] * v[0] + g2[1] * v[1] + g2[3] * v[2] + g2[6] * v[3];
+    float c2 = v[0] * d2[0];
+    d2[1] = g2[1] * v[0] + g2[2] * v[1] + g2[4] * v[2] + g2[7] * v[3];
+    c2 += v[1] * d2[1];
+    d2[2] = g2[3] * v[0] + g2[4] * v[1] + g2[5] * v[2] + g2[8] * v[3];
+    c2 += v[2] * d2[2];
+    d2[3] = g2[6] * v[0] + g2[7] * v[1] + g2[8] * v[2] + g2[9] * v[3];
+    c2 += v[3] * d2[3];
+
+    e[k] += (c2 - c0) * (.5f / h); // 1st order
+    for (int i=0; i<4; i++)
+      e[i] -= v[k] * (d2[i]- d0[i]) *(1.f / h); // 1st order
+  }
+
+  factorSubstCholesky(g0, e);
+  for (int i=0; i<4; i++)
+    xdot[i+4] = e[i];
+}
+
+
+__device__ void func16 (const float xs[8], float xdot[8]) {
   float x[4], v[4];
   for (int k=0; k<4; k++)
     x[k] = xs[k]; // x(t)

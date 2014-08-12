@@ -2,7 +2,7 @@
 # This software contains source code provided by NVIDIA Corporation.
 
 NVCC = nvcc
-CC = $(NVCC) --use_fast_math
+CC = $(NVCC) --use_fast_math -O3
 # CC += -G -g
 
 # native compile:

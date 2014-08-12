@@ -191,6 +191,8 @@ struct CPUAnimBitmap {
     switch (key) {
     case char('M'):
     case char('m'):
+    case char('P'):
+    case char('p'):
     case char('e'):
       bitmap->animKey( bitmap->dataBlock, key );
       break;

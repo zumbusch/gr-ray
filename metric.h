@@ -35,8 +35,7 @@
 #ifndef METRIC_H
 #define METRIC_H
 
-// flat space, Minkowski metric
-__device__ void metric_flat (float x[4], float g[4][4]) {
+__device__ inline void metric_flat (float x[4], float g[4][4]) {
   for (int i=0; i<4; i++)
     for (int j=0; j<4; j++)
       g[i][j] = 0.f;
@@ -46,7 +45,7 @@ __device__ void metric_flat (float x[4], float g[4][4]) {
 }
 
 // linear wave
-__device__ void metric_wave (float x[4], float g[4][4]) {
+__device__ inline void metric_wave (float x[4], float g[4][4]) {
   float r = .1f, o = 2., k[4] = {-1.f, -1.f, 0.f, 0.f}, y = 0.f;
   for (int i=0; i<4; i++)
     y += k[i] * x[i]; 
@@ -60,7 +59,7 @@ __device__ void metric_wave (float x[4], float g[4][4]) {
 }
 
 // sum of Schwarzschild metrics in harmonic coord
-__device__ void metric_bh (float xx[4], float g[4][4]) {
+__device__ inline void metric_bh (float xx[4], float g[4][4]) {
   for (int i=0; i<4; ++i)
     for (int j=0; j<4; ++j)
       g[i][j] = 0.f;
@@ -82,7 +81,7 @@ __device__ void metric_bh (float xx[4], float g[4][4]) {
 }
 
 // sum of Kerr metrics in Kerr-Schild coord
-__device__ void metric_ks (float xx[4], float g[4][4]) {
+__device__ inline void metric_ks (float xx[4], float g[4][4]) {
   for (int i=0; i<4; i++)
     for (int j=0; j<4; j++)
       g[i][j] = 0.f;
@@ -113,9 +112,96 @@ __device__ void metric_ks (float xx[4], float g[4][4]) {
   }
 }
 
-__device__ void metric (float x[4], float g[4][4]) {
+__device__ inline void metric (float x[4], float g[4][4]) {
   return metric_ks (x, g);
 }
 
+// ----------------------------------------------------------------------
+
+
+// flat space, Minkowski metric
+__device__ inline void metric_flat (float x[4], float g[10]) {
+  g[0] = 1.f;
+  g[1] = 0.f;
+  g[2] = -1.f;
+  g[3] = 0.f;
+  g[4] = 0.f;
+  g[5] = -1.f;
+  g[6] = 0.f;
+  g[7] = 0.f;
+  g[8] = 0.f;
+  g[9] = -1.f;
+}
+
+// sum of Schwarzschild metrics in harmonic coord
+__device__ inline void metric_bh (float xx[4], float g[10]) {
+  for (int i=0; i<10; ++i)
+    g[i] = 0.f;
+  for (int k=0; k<SPHERES; k++) {
+    float x[4];
+    for (int i=0; i<4; ++i)
+      x[i] = xx[i] - sph[k].pos[i];
+    float r = sqrtf (sqr (x[1])+sqr (x[2])+sqr (x[3]));
+    float mr = sph[k].m/r;
+    g[0] += (1.f - mr) / (1.f + mr);
+    float f = -sqr (mr/r) * (1+mr) / (1-mr);
+    float d = sqr (1.f + mr);
+    g[2] += f * x[1] * x[1] - d;
+    g[4] += f * x[1] * x[2];
+    g[5] += f * x[2] * x[2] - d;
+    g[7] += f * x[1] * x[3];
+    g[8] += f * x[2] * x[3];
+    g[9] += f * x[3] * x[3] - d;
+  }
+}
+
+// sum of Kerr metrics in Kerr-Schild coord
+__device__ inline void metric_ks (float xx[4], float g[10]) {
+  g[0] = 1.f;
+  g[1] = 0.f;
+  g[2] = -1.f;
+  g[3] = 0.f;
+  g[4] = 0.f;
+  g[5] = -1.f;
+  g[6] = 0.f;
+  g[7] = 0.f;
+  g[8] = 0.f;
+  g[9] = -1.f;
+  for (int k=0; k<SPHERES; k++) {
+    float x[4];
+    for (int i=0; i<4; ++i)
+      x[i] = xx[i] - sph[k].pos[i];
+    float a = sph[k].a; 
+    float m = sph[k].m; 
+    float a2 = sqr (a);
+    float r02 = sqr (x[1]) + sqr (x[2]) + sqr (x[3]);
+    float b = .5f * (r02 - a2);
+    float r2 = b + sqrtf (sqr (b) + a2 * sqr (x[3]));
+    float r = sqrtf (r2);
+    float r2a2 = r2 + a2;
+    float y[4];
+    y[0] = 1;
+    y[1] = (r*x[1] + a*x[2]) / r2a2;
+    y[2] = (r*x[2] - a*x[1]) / r2a2;
+    y[3] = x[3] / r;
+    float f = r2 / (sqr (r2) + a2 * sqr (x[3])) * 2.f * m * r;
+    g[0] -= f * y[0] * y[0];
+    g[1] -= f * y[1] * y[0];
+    g[2] -= f * y[1] * y[1];
+    g[3] -= f * y[2] * y[0];
+    g[4] -= f * y[2] * y[1];
+    g[5] -= f * y[2] * y[2];
+    g[6] -= f * y[3] * y[0];
+    g[7] -= f * y[3] * y[1];
+    g[8] -= f * y[3] * y[2];
+    g[9] -= f * y[3] * y[3];
+  }
+}
+
+__device__ inline void metric (float x[4], float g[10]) {
+  return metric_ks (x, g);
+}
+
+// ----------------------------------------------------------------------
 
 #endif // METRIC_H

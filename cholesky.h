@@ -35,7 +35,7 @@
 #ifndef CHOLESKY_H
 #define CHOLESKY_H
 
-__device__ void factorSubstCholesky(float a[4][4], float b[4]) {
+__device__ inline void factorSubstCholesky(float a[4][4], float b[4]) {
   // LDLt Cholesky decomposition
   // L in c
   // D in c
@@ -79,9 +79,52 @@ __device__ void factorSubstCholesky(float a[4][4], float b[4]) {
   b[3] = a4;
 }
 
+__device__ inline void factorSubstCholesky(float a[10], float b[4]) {
+  // LDLt Cholesky decomposition
+  // L in a
+  // D in a
+  float a11 = a[0];
+  float a21 = a[1];
+  float a22 = a[2];
+  float a31 = a[3];
+  float a32 = a[4];
+  float a33 = a[5];
+  float a41 = a[6];
+  float a42 = a[7];
+  float a43 = a[8];
+  float a44 = a[9];
+  a21 = (a21) / a11;
+  a31 = (a31) / a11;
+  a41 = (a41) / a11;
+  a22 = a22 - a11 * (a21 * a21);
+  a32 = (a32 - a11 * (a31 * a21)) / a22;
+  a42 = (a42 - a11 * (a41 * a21)) / a22;
+  a33 = a33 - a11 * (a31 * a31) - a22 * (a32 * a32);
+  a43 = (a43 - a11 * (a41 * a31) - a22 * (a42 * a32)) / a33;
+  a44 = a44 - a11 * (a41 * a41) - a22 * (a42 * a42) - a33 * (a43 * a43);
+  float b1 = b[0];
+  float b2 = b[1];
+  float b3 = b[2];
+  float b4 = b[3];
+  b2 = b2 - b1 * a21;
+  b3 = b3 - b1 * a31 - b2 * a32;
+  b4 = b4 - b1 * a41 - b2 * a42 - b3 * a43;
+  b1 = b1 / a11;
+  b2 = b2 / a22;
+  b3 = b3 / a33;
+  b4 = b4 / a44;
+  b3 = b3 - b4 * a43;
+  b2 = b2 - b3 * a32 - b4 * a42;
+  b1 = b1 - b2 * a21 - b3 * a31 - b4 * a41;
+  b[0] = b1;
+  b[1] = b2;
+  b[2] = b3;
+  b[3] = b4;
+}
+
 #define N 4
 #define real float
-__device__ void factorSubstCholesky0(real a[N][N], real b[N]) {
+__device__ inline void factorSubstCholesky0(real a[N][N], real b[N]) {
   // LDLt Cholesky decomposition
   // L in a
   // D in a
