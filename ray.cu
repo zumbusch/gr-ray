@@ -134,7 +134,7 @@ void anim_reshape (DataBlock *d, int x, int y) {
   cam_host.gy = max (2,y);
   HANDLE_ERROR (cudaFree (d->dev_bitmap));
   HANDLE_ERROR (cudaMalloc ((void**)&d->dev_bitmap,
-			    d->bitmap->image_size ()));
+   			    d->bitmap->image_size ()));
   cam_host.ptr = d->dev_bitmap;
 
   dim3 grids (cam_host.gx/BLKX, cam_host.gy/BLKY);
