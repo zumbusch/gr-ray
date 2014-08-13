@@ -129,18 +129,24 @@ struct DataBlock {
 };
 
 void anim_reshape (DataBlock *d, int x, int y) {
+  // sync cuda
+  HANDLE_ERROR (cudaMemcpy (d->bitmap->get_ptr (), d->dev_bitmap,
+			    64, cudaMemcpyDeviceToHost));
+  // resize memory
+  if (d->bitmap->pixels)
+    delete[] d->bitmap->pixels;
+  d->bitmap->pixels = new unsigned char[d->bitmap->size];
+  HANDLE_ERROR (cudaFree (d->dev_bitmap));
+  HANDLE_ERROR (cudaMalloc ((void**)&d->dev_bitmap,
+   			    d->bitmap->size));
   cam_host.px[2] = x/ (float)y;
   cam_host.gx = max (2,x);
   cam_host.gy = max (2,y);
-  HANDLE_ERROR (cudaFree (d->dev_bitmap));
-  HANDLE_ERROR (cudaMalloc ((void**)&d->dev_bitmap,
-   			    d->bitmap->allocsize));
   cam_host.ptr = d->dev_bitmap;
-
-  dim3 grids (cam_host.gx/BLKX, cam_host.gy/BLKY);
-  dim3 threads (BLKX, BLKY);
-  clean <<<grids,threads>>> ();
-  getLastCudaError("Kernel execution failed");
+  // dim3 grids (cam_host.gx/BLKX, cam_host.gy/BLKY);
+  // dim3 threads (BLKX, BLKY);
+  // clean <<<grids,threads>>> ();
+  // HANDLE_LAST_ERROR("Kernel execution failed");
 }
 
 void anim_clickdrag (DataBlock *d, float rx, float ry, float tx, float ty, float tz) {
@@ -160,8 +166,8 @@ void anim_gpu (DataBlock *d) {
     // generate a bitmap
     dim3 grids (cam_host.gx/BLKX, cam_host.gy/BLKY, 1);
     dim3 threads (1<<(VECX+VECY), THREADX, THREADY);
-    kernel<<<grids, threads>>> ();
-    getLastCudaError("Kernel execution failed");
+    kernel <<<grids, threads>>> ();
+    HANDLE_LAST_ERROR ("Kernel execution failed");
     // copy our bitmap back from the GPU for display
     HANDLE_ERROR (cudaMemcpy (d->bitmap->get_ptr (), d->dev_bitmap,
 			      d->bitmap->size,
@@ -255,7 +261,7 @@ void start_tex () {
   texPlanet.filterMode = cudaFilterModeLinear;
   texPlanet.normalized = true;
   // Bind the array to the texture reference
-  getLastCudaError("execution failed");
+  HANDLE_LAST_ERROR ("execution failed");
   HANDLE_ERROR (cudaBindTextureToArray (texPlanet, arrayPlanet, channelDesc));
 #endif // TEX
 }
@@ -287,7 +293,7 @@ int main (int argc, char **argv)
 
   // allocate memory on the GPU for the output bitmap
   HANDLE_ERROR (cudaMalloc ((void**)&data.dev_bitmap,
-			    bitmap.allocsize));
+			    bitmap.size));
 
 #if SPHERES>0
   sph_host[0] = (Sphere){{0, 0, 0, 0},

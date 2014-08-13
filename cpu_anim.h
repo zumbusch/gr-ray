@@ -23,30 +23,28 @@
 #ifndef __CPU_ANIM_H__
 #define __CPU_ANIM_H__
 
-static void HandleError (cudaError_t err,
-                         const char *file,
-                         int line) {
-    if (err != cudaSuccess) {
-      printf ("%s(%i) in %s at line %d\n", cudaGetErrorString (err), (int)err,
-	      file, line);
-      exit (EXIT_FAILURE);
-    }
+static void HandleError (cudaError_t err, const char *file, int line) {
+  if (err != cudaSuccess) {
+    printf ("%s(%i) in %s at line %d\n", cudaGetErrorString (err), (int)err,
+	    file, line);
+    cudaDeviceReset ();
+    exit (EXIT_FAILURE);
+  }
 }
 #define HANDLE_ERROR(err) (HandleError (err, __FILE__, __LINE__))
 
 
-inline void __getLastCudaError (const char *errorMessage, const char *file, const int line)
-{
-    cudaError_t err = cudaGetLastError ();
-    if (cudaSuccess != err) {
-      fprintf (stderr, "%s(%i) : getLastCudaError () CUDA error : %s : (%d) %s.\n",
-	      file, line, errorMessage, (int)err, cudaGetErrorString (err));
-      cudaDeviceReset ();
-      exit (EXIT_FAILURE);
-    }
+inline void HandleLastError (const char *errorMessage, const char *file, const int line) {
+  cudaError_t err = cudaGetLastError ();
+  if (cudaSuccess != err) {
+    fprintf (stderr, "%s(%i) : getLastCudaError () CUDA error : %s : (%d) %s.\n",
+	     file, line, errorMessage, (int)err, cudaGetErrorString (err));
+    cudaDeviceReset ();
+    exit (EXIT_FAILURE);
+  }
 }
 
-#define getLastCudaError(msg)      __getLastCudaError (msg, __FILE__, __LINE__)
+#define HANDLE_LAST_ERROR(err) (HandleLastError (err, __FILE__, __LINE__))
 
 
 #include "gl_helper.h"
@@ -67,13 +65,16 @@ struct CPUAnimBitmap {
   float rotateX, rotateY, translateX, translateY, translateZ;
   int update;
   bool full;
-  int size, allocsize;
+  int size;
 
   CPUAnimBitmap (int w, int h, void *d = NULL) {
+    const int wx = 32, hx = 16;
+    w = ((w + wx -1)/wx) * wx;
+    h = ((h + hx -1)/hx) * hx;
     width = w;
     height = h;
-    allocsize = size = width * height * 4;
-    pixels = new unsigned char[allocsize];
+    size = w * h * 4;
+    pixels = new unsigned char[size];
     dataBlock = d;
     clickDrag = NULL;
     mouseOldX = mouseOldY = mouseButtons = 0;
@@ -171,18 +172,12 @@ struct CPUAnimBitmap {
 
   static void reshape (int w, int h) {
     CPUAnimBitmap* bitmap = *(get_bitmap_ptr ());
-    int wx = 32, hx = 16;
-    w = ((w + wx -1)/wx)*wx;
-    h = ((h + hx -1)/hx)*hx;
-    bitmap->size = w * h * 4;
-    if (bitmap->size > bitmap->allocsize) {
-      bitmap->allocsize = bitmap->size;
-      if (bitmap->pixels)
-	delete[] bitmap->pixels;
-      bitmap->pixels = new unsigned char[bitmap->allocsize];
-    }
+    const int wx = 32, hx = 16;
+    w = ((w + wx -1)/wx) * wx;
+    h = ((h + hx -1)/hx) * hx;
     bitmap->width = w;
     bitmap->height = h;
+    bitmap->size = w * h * 4;
     bitmap->reshapeC (bitmap->dataBlock, w, h);
     bitmap->update = 1;
   }

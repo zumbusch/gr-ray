@@ -39,8 +39,7 @@
 #define sqr(x) ((x)*(x))
 #endif
 
-#define N 4
-#define real float
+typedef float real;
 
 // ----------------------------------------------------------------------
 // solve equation system
@@ -133,6 +132,7 @@ __device__ inline void factorSubstCholesky(float a[10], float b[4]) {
   b[3] = b4;
 }
 
+template <int N>
 __device__ inline void factorSubstCholesky_0(real a[N][N], real b[N]) {
   // LDLt Cholesky decomposition
   // L in a
@@ -243,6 +243,7 @@ __device__ inline void factorCholesky(float a[10]) {
   a[9] = a44;
 }
 
+template <int N>
 __device__ inline void factorCholesky_0(real a[N][N]) {
   // LDLt Cholesky decomposition
   // L in a
@@ -335,6 +336,7 @@ __device__ inline void substCholesky(float a[10], float b[4]) {
   b[3] = b4;
 }
 
+template <int N>
 __device__ inline void substCholesky_0(real a[N][N], real b[N]) {
   // LDLt Cholesky decomposition
   // L in a
@@ -543,6 +545,7 @@ __device__ inline void invCholesky(real a[10]) {
 // eukildean norm
 // s = ||x||_2
 
+template <int N>
 __device__ inline float norm_0 (float x[N]) {
   float s = 0.f;
   for (int k=0; k<N; k++)
@@ -558,6 +561,7 @@ __device__ inline float norm (float x[4]) {
 // scalar product
 // s = <x,y>
 
+template <int N>
 __device__ inline float scalProd_0 (float x[N], float y[N]) {
   float s = 0.f;
   for (int k=0; k<N; k++)
@@ -585,6 +589,7 @@ __device__ inline void matVec(const float a[4][4], const float x[4], float y[4])
     y[i] = a[i][0] * x[0] + a[i][1] * x[1] + a[i][2] * x[2] + a[i][3] * x[3];
 }
 
+template <int N>
 __device__ inline void matVec_0(const float a[N][N], const float x[N], float y[N]) {
   for (int i=0; i<N; i++) {
     float s = 0.f;
@@ -605,6 +610,7 @@ __device__ inline void matVec_1N(const float a[10], const float x[4], float y[4]
   y[3] = a[7] * x[1] + a[8] * x[2] + a[9] * x[3];
 }
 
+template <int N>
 __device__ inline void matVec_1N(const float a[N][N], const float x[N], float y[N]) {
   for (int i=0; i<N; i++) {
     float s = 0.f;
