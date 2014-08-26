@@ -123,7 +123,8 @@ __constant__ Plane plane[PLANES];
 struct DataBlock {
   unsigned char *dev_bitmap;
   cudaEvent_t start, stop;
-  float totalTime, frames;
+  float totalTime;
+  int frames;
   int evolve;
   CPUAnimBitmap *bitmap;
 };
@@ -183,7 +184,8 @@ void anim_gpu (DataBlock *d) {
 #ifdef PROFILE
     if (d->frames > PROFILE) exit(0);
 #endif // PROFILE
-    printf ("time :  %3.1f ms\n", elapsedTime);
+    d->bitmap->fps = 1000.f / elapsedTime;
+    // printf ("time :  %3.1f ms\n", elapsedTime);
     if (d->evolve)
       cam_host.pos[0] += .5; // time evolution
   } else
@@ -348,3 +350,5 @@ int main (int argc, char **argv)
   			(void (*) (void*))anim_exit,
   			(void (*) (void*,unsigned char))anim_key);
 }
+
+std::string CPUAnimBitmap::title = "GR raytracer";

@@ -49,25 +49,31 @@ inline void HandleLastError (const char *errorMessage, const char *file, const i
 
 #include "gl_helper.h"
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip>
 
 
 struct CPUAnimBitmap {
   unsigned char *pixels;
   int width, height;
   void *dataBlock;
-  void (*reshapeC) (void*,int,int);
+  void (*reshapeC) (void*, int, int);
   void (*fAnim) (void*);
-  void (*animKey) (void*,unsigned char);
+  void (*animKey) (void*, unsigned char);
   void (*animExit) (void*);
-  void (*clickDrag) (void*,float,float,float,float,float);
+  void (*clickDrag) (void*, float, float, float, float, float);
   int dragStartX, dragStartY;
   int mouseOldX, mouseOldY, mouseButtons, modifiers;
   float rotateX, rotateY, translateX, translateY, translateZ;
   int update;
   bool full;
   int size;
+  float fps;
+  static std::string title;
 
-  CPUAnimBitmap (int w, int h, void *d = NULL) {
+  CPUAnimBitmap (int w, int h, void *d = NULL)
+    : clickDrag (NULL), update (0), full (false), fps (0.) {
     const int wx = 32, hx = 16;
     w = ((w + wx -1)/wx) * wx;
     h = ((h + hx -1)/hx) * hx;
@@ -76,11 +82,8 @@ struct CPUAnimBitmap {
     size = w * h * 4;
     pixels = new unsigned char[size];
     dataBlock = d;
-    clickDrag = NULL;
     mouseOldX = mouseOldY = mouseButtons = 0;
     rotateX = rotateY = translateX = translateY = translateZ = 0;
-    update = 0;
-    full = false;
   }
 
   ~CPUAnimBitmap () {
@@ -109,7 +112,7 @@ struct CPUAnimBitmap {
     glutInit (&c, 0);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize (width, height);
-    glutCreateWindow ("GR raytracer");
+    glutCreateWindow (&title[0]);
     glutKeyboardFunc (Key);
     glutSpecialFunc (SpecialKey);
     glutDisplayFunc (Draw);
@@ -228,14 +231,16 @@ struct CPUAnimBitmap {
 
   // static method used for glut callbacks
   static void Draw (void) {
-    CPUAnimBitmap*   bitmap = *(get_bitmap_ptr ());
+    CPUAnimBitmap* bitmap = *(get_bitmap_ptr ());
+    std::stringstream st;
+    st << title << ": " << std::setprecision (3) << bitmap->fps << " fps";
+    glutSetWindowTitle (&st.str ()[0]);
     glClearColor (0.0, 0.0, 0.0, 1.0);
     glClear (GL_COLOR_BUFFER_BIT);
     glDrawPixels (bitmap->width, bitmap->height, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels);
     glutSwapBuffers ();
   }
 };
-
 
 #endif  // __CPU_ANIM_H__
 
