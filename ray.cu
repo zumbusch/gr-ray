@@ -45,7 +45,9 @@
 
 #include "ppm.h"
 #include "cpu_anim.h"
+#ifndef WIN
 #include <unistd.h>
+#endif
 
 #define DIMX 512
 #define DIMY 512
@@ -83,23 +85,6 @@ struct Sphere {
   __device__ void color (float x0[8], float xs[8], float g00, int cf[3]);
 };
 
-#define SPHERES 2
-
-__constant__ Sphere sph[SPHERES>0 ? SPHERES : 1];
-Sphere sph_host[SPHERES];
-
-#include "metric.h"
-
-
-struct Camera { // camera position and direction
-  float pos[4], px[4], py[4], pz[4];
-  int gx, gy; // screen resolution
-  unsigned char *ptr;
-};
-
-__constant__ Camera cam;
-Camera cam_host;
-
 struct Plane {
   float n[4]; // normal vector
   float d; // distance
@@ -110,11 +95,28 @@ struct Plane {
   __device__ void color (float x0[8], float xs[8], float g00, int cf[3]);
 };
 
+struct Camera { // camera position and direction
+  float pos[4], px[4], py[4], pz[4];
+  int gx, gy; // screen resolution
+  unsigned char *ptr;
+};
+
+#ifdef PLANES
+#undef PLANES
+#endif
 #define PLANES 5
+#define SPHERES 2
 
-__constant__ Plane plane[PLANES];
+__constant__ Sphere sph[SPHERES>0 ? SPHERES : 1];
+Sphere sph_host[SPHERES>0 ? SPHERES : 1];
 
+__constant__ Plane plane[PLANES>0 ? PLANES : 1];
+Plane temp_p[PLANES>0 ? PLANES : 1];
 
+__constant__ Camera cam;
+Camera cam_host;
+
+#include "metric.h"
 #include <cuda.h>
 #include "cholesky.h"
 #include "kern.h"
@@ -151,11 +153,11 @@ void anim_reshape (DataBlock *d, int x, int y) {
 }
 
 void anim_clickdrag (DataBlock *d, float rx, float ry, float tx, float ty, float tz) {
-  cam_host.pos[1] = -20+5*tz;
-  cam_host.pos[2] = -5*tx;
-  cam_host.pos[3] = -5*ty;
-  cam_host.pz[2] = -.3*rx;
-  cam_host.pz[3] = -.3*ry;
+  cam_host.pos[1] = -20 + 5 * tz;
+  cam_host.pos[2] = -5 * tx;
+  cam_host.pos[3] = -5 * ty;
+  cam_host.pz[2] = -.3f * rx;
+  cam_host.pz[3] = -.3f * ry;
 }
 
 void anim_gpu (DataBlock *d) {
@@ -189,7 +191,10 @@ void anim_gpu (DataBlock *d) {
     if (d->evolve)
       cam_host.pos[0] += .5; // time evolution
   } else
+#ifndef WIN
     usleep (20000);
+#endif
+  ;
 }
 
 // clean up memory allocated on the GPU
@@ -212,27 +217,27 @@ void anim_key (DataBlock *d, unsigned char k) {
   bool change = false;
   if (k == char ('N') || k == char ('n')) {
     change = true;
-    float f = k == char ('N') ? 1/.9 : .9;
+    float f = k == char ('N') ? 1/.9f : .9f;
     sph_host[1].m *= f;
     sph_host[1].r *= f;
     printf ("mass %g %g\n", sph_host[0].m, sph_host[1].m);
   }
   if (k == char ('M') || k == char ('m')) {
     change = true;
-    float f = k == char ('M') ? 1/.9 : .9;
+    float f = k == char ('M') ? 1/.9f : .9f;
     sph_host[0].m *= f;
     sph_host[0].r *= f;
     printf ("mass %g %g\n", sph_host[0].m, sph_host[1].m);
   }
   if (k == char ('O') || k == char ('o')) {
     change = true;
-    float p = k == char ('O') ? .1 : -.1;
+    float p = k == char ('O') ? .1f : -.1f;
     sph_host[1].a += p;
     printf ("spin %g %g\n", sph_host[0].a, sph_host[1].a);
   }
   if (k == char ('P') || k == char ('p')) {
     change = true;
-    float p = k == char ('P') ? .1 : -.1;
+    float p = k == char ('P') ? .1f : -.1f;
     sph_host[0].a += p;
     printf ("spin %g %g\n", sph_host[0].a, sph_host[1].a);
   }
@@ -298,46 +303,127 @@ int main (int argc, char **argv)
 			    bitmap.size));
 
 #if SPHERES>0
-  sph_host[0] = (Sphere){{0, 0, 0, 0},
-			 .5, 2., .6,
-			 {160, 200, 255}};
+  sph_host[0].pos[0] = 0;
+  sph_host[0].pos[1] = 0;
+  sph_host[0].pos[2] = 0;
+  sph_host[0].pos[3] = 0;
+  sph_host[0].m = .5f;
+  sph_host[0].r = 2.f;
+  sph_host[0].a = .6f;
+  sph_host[0].col[0] = 160;
+  sph_host[0].col[1] = 200;
+  sph_host[0].col[2] = 255;
 #if SPHERES>1
-  sph_host[1] = (Sphere){{0, 0, -3, -3},
-			 .125, .5, .3,
-			 {150, 150, 150}};
+  sph_host[1].pos[0] = 0;
+  sph_host[1].pos[1] = 0;
+  sph_host[1].pos[2] = -3;
+  sph_host[1].pos[3] = -3;
+  sph_host[1].m = .125f;
+  sph_host[1].r = .5f;
+  sph_host[1].a = .3f;
+  sph_host[1].col[0] = 150;
+  sph_host[1].col[1] = 150;
+  sph_host[1].col[2] = 150;
 #endif
   HANDLE_ERROR (cudaMemcpyToSymbol (sph, sph_host, 
 				    sizeof (Sphere) * SPHERES));
 #endif
 
-  Plane *temp_p = (Plane*)malloc (sizeof (Plane) * PLANES);
   float r = 7, r2 = 6 / (2*r); // box size, nr. of squares
-  temp_p[0] = (Plane){{0, 1, 0, 0},
+  /* temp_p[0] = (Plane){{0, 1, 0, 0},
 		      r, r2,
-		      {50, 255, 50}};
+		      {50, 255, 50}}; */
+  temp_p[0].n[0] = 0;
+  temp_p[0].n[1] = 1;
+  temp_p[0].n[2] = 0;
+  temp_p[0].n[3] = 0;
+  temp_p[0].d = r;
+  temp_p[0].p = r2;
+  temp_p[0].col[0] = 50;
+  temp_p[0].col[1] = 255;
+  temp_p[0].col[2] = 50;
+
 #if PLANES>1
-  temp_p[1] = (Plane){{0, 0, 1, 0},
+/* temp_p[1] = (Plane){{0, 0, 1, 0},
 		      r, r2,
-		      {250, 255, 50}};
-  temp_p[2] = (Plane){{0, 0, -1, 0},
+		      {250, 255, 50}}; */
+  temp_p[1].n[0] = 0;
+  temp_p[1].n[1] = 0;
+  temp_p[1].n[2] = 1;
+  temp_p[1].n[3] = 0;
+  temp_p[1].d = r;
+  temp_p[1].p = r2;
+  temp_p[1].col[0] = 250;
+  temp_p[1].col[1] = 255;
+  temp_p[1].col[2] = 50;
+
+  /* temp_p[2] = (Plane){{0, 0, -1, 0},
 		      r, r2,
-		      {250, 255, 50}};
-  temp_p[3] = (Plane){{0, 0, 0, 1},
+		      {250, 255, 50}}; */
+  temp_p[2].n[0] = 0;
+  temp_p[2].n[1] = 0;
+  temp_p[2].n[2] = -1;
+  temp_p[2].n[3] = 0;
+  temp_p[2].d = r;
+  temp_p[2].p = r2;
+  temp_p[2].col[0] = 250;
+  temp_p[2].col[1] = 255;
+  temp_p[2].col[2] = 50;
+
+  /* temp_p[3] = (Plane){{0, 0, 0, 1},
 		      r, r2,
-		      {50, 255, 250}};
-  temp_p[4] = (Plane){{0, 0, 0, -1},
+		      {50, 255, 250}}; */
+  temp_p[3].n[0] = 0;
+  temp_p[3].n[1] = 0;
+  temp_p[3].n[2] = 0;
+  temp_p[3].n[3] = 1;
+  temp_p[3].d = r;
+  temp_p[3].p = r2;
+  temp_p[3].col[0] = 50;
+  temp_p[3].col[1] = 255;
+  temp_p[3].col[2] = 250;
+
+  /*   temp_p[4] = (Plane){{0, 0, 0, -1},
 		      r, r2,
-		      {50, 255, 250}};
+		      {50, 255, 250}}; */
+  temp_p[4].n[0] = 0;
+  temp_p[4].n[1] = 0;
+  temp_p[4].n[2] = 0;
+  temp_p[4].n[3] = -1;
+  temp_p[4].d = r;
+  temp_p[4].p = r2;
+  temp_p[4].col[0] = 50;
+  temp_p[4].col[1] = 255;
+  temp_p[4].col[2] = 250;
+
 #endif
   HANDLE_ERROR (cudaMemcpyToSymbol (plane, temp_p, 
 				    sizeof (Plane) * PLANES));
-  free (temp_p);
 
-  cam_host = (Camera){ {0, -20, 0, 0},
+  /* cam_host = (Camera){ {0, -20, 0, 0},
 		       {0, 0, DIMX/ (float)DIMY, 0},
 		       {0, 0, 0, 1},
 		       {0, 2, 0, 0},
-		       max (2, DIMX), max (2, DIMY), data.dev_bitmap };
+		       max (2, DIMX), max (2, DIMY), data.dev_bitmap }; */
+  cam_host.pos[0] = 0; 
+  cam_host.pos[1] = -20; 
+  cam_host.pos[2] = 0; 
+  cam_host.pos[3] = 0; 
+  cam_host.px[0] = 0; 
+  cam_host.px[1] = 0; 
+  cam_host.px[2] = DIMX/ (float)DIMY; 
+  cam_host.px[3] = 0; 
+  cam_host.py[0] = 0; 
+  cam_host.py[1] = 0; 
+  cam_host.py[2] = 0; 
+  cam_host.py[3] = 1; 
+  cam_host.pz[0] = 0; 
+  cam_host.pz[1] = 2; 
+  cam_host.pz[2] = 0; 
+  cam_host.pz[3] = 0;
+  cam_host.gx = max (2, DIMX);
+  cam_host.gy = max (2, DIMY);
+  cam_host.ptr = data.dev_bitmap;
   HANDLE_ERROR (cudaMemcpyToSymbol (cam, &cam_host, sizeof (Camera)));
   HANDLE_ERROR (cudaEventCreate (&data.start));
   HANDLE_ERROR (cudaEventCreate (&data.stop));

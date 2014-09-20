@@ -34,12 +34,7 @@
 #pragma comment (lib, "glut64.lib")    /* link with Win64 GLUT lib */
 #endif //_WIN64
 
-
 #ifdef _WIN32
-/* On Windows, include the local copy of glut.h and glext.h */
-#include "GL/glut.h"
-#include "GL/glext.h"
-
 #define GET_PROC_ADDRESS( str ) wglGetProcAddress( str )
 
 #else
@@ -52,6 +47,17 @@
 #define GET_PROC_ADDRESS( str ) glXGetProcAddress( (const GLubyte *)str )
 
 #endif //_WIN32
+
+
+// OpenGL Graphics includes
+#if defined (__APPLE__) || defined(MACOSX)
+#include <GLUT/glut.h>
+#ifndef glutCloseFunc
+#define glutCloseFunc glutWMCloseFunc
+#endif
+#else
+#include <GL/freeglut.h>
+#endif
 
 
 #endif //__GL_HELPER_H__'

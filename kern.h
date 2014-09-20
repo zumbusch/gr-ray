@@ -51,7 +51,7 @@ __global__ void clean () {
 // ----------------------------------------------------------------------
 
 __device__ void redshift (float r, int c[3]) {
-  float co[8] = {0, 0, c[0], c[1], c[2], 0, 0, 0};
+	float co[8] = { 0., 0., (float)c[0], (float)c[1], (float)c[2], 0., 0., 0. };
   if (r>0.f) {
     r = 4.f * logf (r); // estimate 
     if (r<-2.f) r = -2.f;
