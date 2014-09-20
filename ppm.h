@@ -87,10 +87,10 @@ loadPPM( const char* file, float** data,
   unsigned char* pm = mdata;
   for (unsigned int j = 0; j<height; j++)
     for (unsigned int i = 0; i<width; i++) {
-		for (unsigned int k = 0; k<mchannels; k++)
+      for (unsigned int k = 0; k<mchannels; k++)
 	pd[k + *channels * (i+width*j)] =
 	  pm[k + mchannels * (i+width*(height-1-j))] / (float)maxval;
-		for (unsigned int k = mchannels; k<*channels; k++)
+      for (unsigned int k = mchannels; k<*channels; k++)
 	pd[k + *channels * (i+width*j)] = 0;
     }
 

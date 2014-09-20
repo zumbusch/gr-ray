@@ -143,16 +143,16 @@ __device__ inline void factorSubstCholesky_0(real a[N][N], real b[N]) {
     real s = a[j][j];
     for (int k=0; k<j; k++) {
       real t = a[j][k];
-       s -= a[k][k] * (t * t);
+      s -= a[k][k] * (t * t);
     }
     a[j][j] = s;
     id[j] = 1.f / s;
     for (int i=j+1; i<N; i++) {
       real s = a[i][j];
-       for (int k=0; k<j; k++) {
-	 s -= a[k][k] * a[i][k] * a[j][k];
-       }
-       a[i][j] = s * id[j];
+      for (int k=0; k<j; k++) {
+	s -= a[k][k] * a[i][k] * a[j][k];
+      }
+      a[i][j] = s * id[j];
     }
   }
 
@@ -252,15 +252,15 @@ __device__ inline void factorCholesky_0(real a[N][N]) {
     real s = a[j][j];
     for (int k=0; k<j; k++) {
       real t = a[j][k];
-       s -= a[k][k] * (t * t);
+      s -= a[k][k] * (t * t);
     }
     a[j][j] = s;
     for (int i=j+1; i<N; i++) {
       real s = a[i][j];
-       for (int k=0; k<j; k++) {
-	 s -= a[k][k] * a[i][k] * a[j][k];
-       }
-       a[i][j] = s / a[j][j];
+      for (int k=0; k<j; k++) {
+	s -= a[k][k] * a[i][k] * a[j][k];
+      }
+      a[i][j] = s / a[j][j];
     }
   }
 }

@@ -206,8 +206,8 @@ struct CPUAnimBitmap {
     case char ('o'):
     case char ('e'):
       bitmap->animKey (bitmap->dataBlock, key);
-      bitmap->update = 1;
-      break;
+    bitmap->update = 1;
+    break;
     case 27:
       bitmap->animExit (bitmap->dataBlock);
       exit (0);

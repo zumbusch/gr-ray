@@ -331,8 +331,8 @@ int main (int argc, char **argv)
 
   float r = 7, r2 = 6 / (2*r); // box size, nr. of squares
   /* temp_p[0] = (Plane){{0, 1, 0, 0},
-		      r, r2,
-		      {50, 255, 50}}; */
+     r, r2,
+     {50, 255, 50}}; */
   temp_p[0].n[0] = 0;
   temp_p[0].n[1] = 1;
   temp_p[0].n[2] = 0;
@@ -344,9 +344,9 @@ int main (int argc, char **argv)
   temp_p[0].col[2] = 50;
 
 #if PLANES>1
-/* temp_p[1] = (Plane){{0, 0, 1, 0},
-		      r, r2,
-		      {250, 255, 50}}; */
+  /* temp_p[1] = (Plane){{0, 0, 1, 0},
+     r, r2,
+     {250, 255, 50}}; */
   temp_p[1].n[0] = 0;
   temp_p[1].n[1] = 0;
   temp_p[1].n[2] = 1;
@@ -358,8 +358,8 @@ int main (int argc, char **argv)
   temp_p[1].col[2] = 50;
 
   /* temp_p[2] = (Plane){{0, 0, -1, 0},
-		      r, r2,
-		      {250, 255, 50}}; */
+     r, r2,
+     {250, 255, 50}}; */
   temp_p[2].n[0] = 0;
   temp_p[2].n[1] = 0;
   temp_p[2].n[2] = -1;
@@ -371,8 +371,8 @@ int main (int argc, char **argv)
   temp_p[2].col[2] = 50;
 
   /* temp_p[3] = (Plane){{0, 0, 0, 1},
-		      r, r2,
-		      {50, 255, 250}}; */
+     r, r2,
+     {50, 255, 250}}; */
   temp_p[3].n[0] = 0;
   temp_p[3].n[1] = 0;
   temp_p[3].n[2] = 0;
@@ -384,8 +384,8 @@ int main (int argc, char **argv)
   temp_p[3].col[2] = 250;
 
   /*   temp_p[4] = (Plane){{0, 0, 0, -1},
-		      r, r2,
-		      {50, 255, 250}}; */
+       r, r2,
+       {50, 255, 250}}; */
   temp_p[4].n[0] = 0;
   temp_p[4].n[1] = 0;
   temp_p[4].n[2] = 0;
@@ -401,10 +401,10 @@ int main (int argc, char **argv)
 				    sizeof (Plane) * PLANES));
 
   /* cam_host = (Camera){ {0, -20, 0, 0},
-		       {0, 0, DIMX/ (float)DIMY, 0},
-		       {0, 0, 0, 1},
-		       {0, 2, 0, 0},
-		       max (2, DIMX), max (2, DIMY), data.dev_bitmap }; */
+     {0, 0, DIMX/ (float)DIMY, 0},
+     {0, 0, 0, 1},
+     {0, 2, 0, 0},
+     max (2, DIMX), max (2, DIMY), data.dev_bitmap }; */
   cam_host.pos[0] = 0; 
   cam_host.pos[1] = -20; 
   cam_host.pos[2] = 0; 
